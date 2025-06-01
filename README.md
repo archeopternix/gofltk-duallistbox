@@ -96,9 +96,6 @@ dual := NewDualListBox(x, y, w, h)
 
 - `Resize(x, y, w, h int)` – Resize and move the widget and its children.
 
-## Examples
-
-See [dual_list_box_examples.go](dual_list_box_examples.go) for a complete, runnable example.
 
 ## License
 
