@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/pwiecz/go-fltk"
@@ -8,15 +9,21 @@ import (
 
 func main() {
 
-	window := fltk.NewWindow(400, 400)
+	window := fltk.NewWindow(500, 400)
 	window.SetLabel("DualListBox Example")
 
 	// Create a DualListBox at (20, 20), width 360, height 200
-	dlb := NewDualListBox(window, 5, 5, window.W(), 200)
+	dlb := NewDualListBox(5, 5, window.W(), 200)
 	dlb.SetLeftItems([]string{"Apple", "Banana", "Cherry", "Date"})
 	dlb.SetRightItems([]string{})
 	dlb.SetLeftTitle("Target")
 	dlb.SetRightTitle("Source")
+	dlb.RegisterMoveRightHandler(func() {
+		fmt.Println("Moved right!")
+	})
+	dlb.RegisterMoveLeftHandler(func() {
+		fmt.Println("Moved left!")
+	})
 	window.Add(dlb)
 
 	// Add an Exit button at the bottom

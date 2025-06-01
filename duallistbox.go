@@ -7,20 +7,28 @@ import (
 	"github.com/pwiecz/go-fltk"
 )
 
-// DualListBox is a widget for moving items between two lists.
+// DualListBox is a composite widget for moving items between two lists.
+// The left list represents "used" items and the right list "available" items.
+// Users can move items between the lists using the arrow buttons.
+// The widget is implemented by embedding a fltk.Group and managing its children.
 type DualListBox struct {
-	group                *fltk.Group
-	leftBox, rightBox    *fltk.Box
-	leftList, rightList  *fltk.MultiBrowser
-	addButton, delButton *fltk.Button
-	onClick              func()
-	rightItems           []string // available filters (right side)
-	leftItems            []string // used filters (left side)
-	x, y, w, h           int
+	*fltk.Group
+	leftBox, rightBox   *fltk.Box          // Label boxes above each list
+	leftList, rightList *fltk.MultiBrowser // Multi-select lists for used/available items
+	moveLeftButton      *fltk.Button       // Moves selected item from right to left
+	moveRightButton     *fltk.Button       // Moves selected item from left to right
+	onMoveRight         func()             // Handler called after a move to the right
+	onMoveLeft          func()             // Handler called after a move to the left
+	rightItems          []string           // Items shown on the right (available)
+	leftItems           []string           // Items shown on the left (used)
+	x, y, w, h          int                // Widget geometry
 }
 
-// NewDualListBox creates a dual list box UI element.
-func NewDualListBox(parent *fltk.Window, x, y, w, h int) *DualListBox {
+// NewDualListBox creates and returns a new DualListBox widget.
+//
+// x, y:   The top-left coordinate of the widget
+// w, h:   The size of the widget
+func NewDualListBox(x, y, w, h int) *DualListBox {
 	group := fltk.NewGroup(x, y, w, h)
 	group.Begin()
 
@@ -28,40 +36,43 @@ func NewDualListBox(parent *fltk.Window, x, y, w, h int) *DualListBox {
 	btnW := 50
 	btnH := 30
 	btnX := w/2 - btnW/2
-	btnY := y + boxH + (h-30)/2 // middle of the button area
+	btnY := y + boxH + (h-30)/2 // Vertically center buttons between the lists
 	leftW := (w-btnW)/2 - 20
 	rightW := (w-btnW)/2 - 20
 	listH := h - 30
-	// Left List
+
+	// Left List: Used Items
 	leftBox := fltk.NewBox(fltk.NO_BOX, x, y, leftW, boxH, "Used Filters")
 	leftBox.SetAlign(fltk.ALIGN_CENTER | fltk.ALIGN_INSIDE)
 	leftList := fltk.NewMultiBrowser(x, y+boxH, leftW, listH, "")
 
-	// Right List
+	// Right List: Available Items
 	rightBox := fltk.NewBox(fltk.NO_BOX, x+w-rightW-10, y, rightW, boxH, "Available Filters")
 	rightBox.SetAlign(fltk.ALIGN_CENTER | fltk.ALIGN_INSIDE)
 	rightList := fltk.NewMultiBrowser(x+w-rightW-10, y+boxH, rightW, listH, "")
 
-	addButton := fltk.NewButton(btnX, btnY-40, btnW, btnH, "<--")
-	delButton := fltk.NewButton(btnX, btnY+10, btnW, btnH, "-->")
+	// Arrow Buttons
+	moveLeftButton := fltk.NewButton(btnX, btnY-40, btnW, btnH, "<--")  // Move from right to left
+	moveRightButton := fltk.NewButton(btnX, btnY+10, btnW, btnH, "-->") // Move from left to right
 
 	dlb := &DualListBox{
-		group:      group,
-		leftBox:    leftBox,
-		rightBox:   rightBox,
-		leftList:   leftList,
-		rightList:  rightList,
-		addButton:  addButton,
-		delButton:  delButton,
-		rightItems: nil,
-		leftItems:  nil,
-		x:          x,
-		y:          y,
-		w:          w,
-		h:          h,
+		Group:           group,
+		leftBox:         leftBox,
+		rightBox:        rightBox,
+		leftList:        leftList,
+		rightList:       rightList,
+		moveLeftButton:  moveLeftButton,
+		moveRightButton: moveRightButton,
+		rightItems:      nil,
+		leftItems:       nil,
+		x:               x,
+		y:               y,
+		w:               w,
+		h:               h,
 	}
 
-	addButton.SetCallback(func() {
+	// Move selected item from right list to left list
+	moveLeftButton.SetCallback(func() {
 		selected := rightList.Value()
 		if selected > 0 {
 			item := rightList.Text(selected)
@@ -71,16 +82,18 @@ func NewDualListBox(parent *fltk.Window, x, y, w, h int) *DualListBox {
 			if index >= 0 {
 				dlb.rightItems = slices.Delete(dlb.rightItems, index, index+1)
 			}
-			// Sort both lists and refresh
+			// Sort both lists and refresh UI
 			sort.Strings(dlb.leftItems)
 			sort.Strings(dlb.rightItems)
 			dlb.Refresh()
-			if dlb.onClick != nil {
-				dlb.onClick()
+			if dlb.onMoveLeft != nil {
+				dlb.onMoveLeft()
 			}
 		}
 	})
-	delButton.SetCallback(func() {
+
+	// Move selected item from left list to right list
+	moveRightButton.SetCallback(func() {
 		selected := leftList.Value()
 		if selected > 0 {
 			item := leftList.Text(selected)
@@ -89,12 +102,12 @@ func NewDualListBox(parent *fltk.Window, x, y, w, h int) *DualListBox {
 			if index >= 0 {
 				dlb.leftItems = slices.Delete(dlb.leftItems, index, index+1)
 			}
-			// Sort both lists and refresh
+			// Sort both lists and refresh UI
 			sort.Strings(dlb.leftItems)
 			sort.Strings(dlb.rightItems)
 			dlb.Refresh()
-			if dlb.onClick != nil {
-				dlb.onClick()
+			if dlb.onMoveRight != nil {
+				dlb.onMoveRight()
 			}
 		}
 	})
@@ -104,26 +117,40 @@ func NewDualListBox(parent *fltk.Window, x, y, w, h int) *DualListBox {
 	return dlb
 }
 
-// SetLeftTitle sets the title of the left list box.
+// SetLeftTitle changes the label above the left list.
+//
+// title: The label to display.
 func (d *DualListBox) SetLeftTitle(title string) {
 	if d.leftBox != nil {
 		d.leftBox.SetLabel(title)
 	}
 }
 
-// SetRightTitle sets the title of the right list box.
+// SetRightTitle changes the label above the right list.
+//
+// title: The label to display.
 func (d *DualListBox) SetRightTitle(title string) {
 	if d.rightBox != nil {
 		d.rightBox.SetLabel(title)
 	}
 }
 
-// RegisterClickHandler sets a callback called after add or delete button is pressed.
-func (d *DualListBox) RegisterClickHandler(cb func()) {
-	d.onClick = cb
+// RegisterMoveRightHandler sets the callback to invoke after an item is moved from left to right.
+//
+// cb: The function to call after move right.
+func (d *DualListBox) RegisterMoveRightHandler(cb func()) {
+	d.onMoveRight = cb
 }
 
-// Refresh clears and repopulates both lists from the current rightItems and leftItems.
+// RegisterMoveLeftHandler sets the callback to invoke after an item is moved from right to left.
+//
+// cb: The function to call after move left.
+func (d *DualListBox) RegisterMoveLeftHandler(cb func()) {
+	d.onMoveLeft = cb
+}
+
+// Refresh clears and repopulates both lists from the current leftItems and rightItems slices.
+// Both lists are displayed in sorted order.
 func (d *DualListBox) Refresh() {
 	d.leftList.Clear()
 	d.rightList.Clear()
@@ -135,40 +162,42 @@ func (d *DualListBox) Refresh() {
 	}
 }
 
-// Resize moves and resizes the DualListBox and all its children.
+// Resize moves and resizes the DualListBox and all its child widgets.
+// This method should be called when the parent is resized.
 func (d *DualListBox) Resize(x, y, w, h int) {
 	d.x, d.y, d.w, d.h = x, y, w, h
-	d.group.Resize(x, y, w, h)
+	d.Group.Resize(x, y, w, h)
 
 	// Re-layout children (fixed widths for lists/buttons, adjust positions)
 	btnW := 50
 	btnH := 30
 	btnX := x + w/2 - btnW/2
-	btnY := h / 2 // middle of the button area
+	btnY := h / 2 // vertical center for buttons
 	leftW := (w+btnW)/2 - 20
 	rightW := (w+btnW)/2 - 20
 	listH := h - 30
 	boxH := 30
 
-	// Left
+	// Left list and label
 	d.leftList.Resize(x, y+boxH, leftW, listH)
 	if d.leftBox != nil {
 		d.leftBox.Resize(x, y, leftW, boxH)
 	}
 
-	// Right
+	// Right list and label
 	rightX := x + w - rightW
 	d.rightList.Resize(rightX, y+boxH, rightW, listH)
 	if d.rightBox != nil {
 		d.rightBox.Resize(rightX, y, rightW, boxH)
 	}
 
-	// Buttons
-	d.addButton.Resize(btnX, btnY-40, btnW, btnH)
-	d.delButton.Resize(btnX, btnY+10, btnW, btnH)
+	// Buttons between lists
+	d.moveLeftButton.Resize(btnX, btnY-40, btnW, btnH)
+	d.moveRightButton.Resize(btnX, btnY+10, btnW, btnH)
 }
 
-// SetLeftItems replaces the items in the left list (used filters).
+// SetLeftItems replaces the items in the left list (used/selected items).
+// The list will be displayed in sorted order.
 func (d *DualListBox) SetLeftItems(items []string) {
 	d.leftList.Clear()
 	sort.Strings(items)
@@ -178,7 +207,7 @@ func (d *DualListBox) SetLeftItems(items []string) {
 	d.leftItems = slices.Clone(items)
 }
 
-// GetLeftItems returns all items in the left list (used filters).
+// GetLeftItems returns all items currently in the left list (used/selected items).
 func (d *DualListBox) GetLeftItems() []string {
 	var items []string
 	for i := 1; i <= d.leftList.Size(); i++ {
@@ -187,7 +216,8 @@ func (d *DualListBox) GetLeftItems() []string {
 	return items
 }
 
-// SetRightItems replaces the items in the right list (available filters).
+// SetRightItems replaces the items in the right list (available items).
+// The list will be displayed in sorted order.
 func (d *DualListBox) SetRightItems(items []string) {
 	d.rightList.Clear()
 	sort.Strings(items)
@@ -197,7 +227,7 @@ func (d *DualListBox) SetRightItems(items []string) {
 	d.rightItems = slices.Clone(items)
 }
 
-// GetRightItems returns all items in the right list (available filters).
+// GetRightItems returns all items currently in the right list (available items).
 func (d *DualListBox) GetRightItems() []string {
 	var items []string
 	for i := 1; i <= d.rightList.Size(); i++ {
