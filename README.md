@@ -1,6 +1,7 @@
 # DualListBox Widget for Go FLTK
 
 This package provides a composite FLTK widget for Go called `DualListBox`, which allows users to move items between two lists using arrow buttons. The left list typically represents "used" or "selected" items, and the right list "available" items. It is ideal for filter selection, permissions, and similar UI patterns.
+![DualListBox Screenshot](./DualList.png)
 
 ## Features
 
