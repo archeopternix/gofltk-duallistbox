@@ -34,8 +34,6 @@ import (
 )
 
 func main() {
-	fltk.Init()
-
 	win := fltk.NewWindow(600, 400)
 	win.SetLabel("DualListBox Example")
 
