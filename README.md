@@ -18,7 +18,7 @@ Make sure you have [go-fltk](https://github.com/pwiecz/go-fltk) installed and wo
 Clone or copy this package into your project:
 
 ```sh
-go get github.com/youruser/yourrepo/duallistbox
+go get github.com/archeopternix/gofltk-duallistbox/duallistbox
 ```
 
 ## Usage
