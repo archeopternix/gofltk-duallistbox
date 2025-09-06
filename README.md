@@ -31,13 +31,14 @@ import (
 	"strings"
 
 	"github.com/archeopternix/go-fltk"
+	"github.com/archeopternix/gofltk-duallistbox"
 )
 
 func main() {
 	win := fltk.NewWindow(600, 400)
 	win.SetLabel("DualListBox Example")
 
-	dual := NewDualListBox(20, 20, 560, 320)
+	dual := duallistbox.NewDualListBox(20, 20, 560, 320)
 
 	// Set initial items
 	dual.SetLeftItems([]string{"foo", "bar"})
