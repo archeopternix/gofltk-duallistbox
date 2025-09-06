@@ -4,7 +4,7 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/pwiecz/go-fltk"
+	"github.com/archeopternix/go-fltk"
 )
 
 // DualListBox is a composite widget for moving items between two lists.

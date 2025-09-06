@@ -9,11 +9,11 @@ This package provides a composite FLTK widget for Go called `DualListBox`, which
 - Items in both lists are always sorted alphabetically.
 - Customizable list titles.
 - Register callback handlers for both move-left and move-right actions.
-- Easy integration with [go-fltk](https://github.com/pwiecz/go-fltk) applications.
+- Easy integration with [go-fltk](https://github.com/archeopternix/go-fltk) applications.
 
 ## Installation
 
-Make sure you have [go-fltk](https://github.com/pwiecz/go-fltk) installed and working.
+Make sure you have [go-fltk](https://github.com/archeopternix/go-fltk) installed and working.
 
 Clone or copy this package into your project:
 
@@ -30,7 +30,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pwiecz/go-fltk"
+	"github.com/archeopternix/go-fltk"
 )
 
 func main() {
